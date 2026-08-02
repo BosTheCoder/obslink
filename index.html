@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>obslink</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14'>🔗</text></svg>">
+<style>
+  :root {
+    --bg: #fbfbfd; --fg: #1c1c1e; --muted: #6b6b70;
+    --card: #fff; --line: #e4e4e8; --accent: #7c5cff; --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a; --fg: #ececf1; --muted: #9b9ba3;
+      --card: #1e1e24; --line: #2e2e36; --accent: #9d84ff; --bad: #ff7a6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  main { width: 100%; max-width: 34rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 24px; box-shadow: 0 1px 3px rgb(0 0 0 / .06);
+  }
+  h1 { margin: 0 0 4px; font-size: 1.05rem; letter-spacing: -.01em; }
+  p.sub { margin: 0 0 20px; color: var(--muted); font-size: .875rem; }
+  .note { font-size: 1.25rem; font-weight: 600; word-break: break-word; margin: 0 0 4px; }
+  .vault { color: var(--muted); font-size: .8rem; margin: 0 0 20px; }
+  button, .btn {
+    display: block; width: 100%; padding: 12px 16px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+    text-align: center; text-decoration: none; cursor: pointer;
+  }
+  button:active, .btn:active { opacity: .85; }
+  textarea, input {
+    width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--fg); font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+    resize: vertical;
+  }
+  textarea { min-height: 5.5rem; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin: 0 0 6px; }
+  .row { margin-bottom: 16px; }
+  .row:last-child { margin-bottom: 0; }
+  .out { display: none; }
+  .out.show { display: block; }
+  .err { color: var(--bad); font-size: .875rem; word-break: break-word; }
+  .hint { color: var(--muted); font-size: .8rem; margin: 16px 0 0; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+</style>
+</head>
+<body>
+<main class="card" id="app"></main>
+
+<script type="module">
+import { decode, toHttps, fromHttps, describe, DEFAULT_BASE } from "./obslink.js";
+
+const app = document.getElementById("app");
+function render(html) { app.innerHTML = html; }
+
+// The base this page is actually served from, so a link made here points back
+// here — whether that is the custom domain, github.io, or a local file server.
+const selfBase = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+
+const token = /^#o=([A-Za-z0-9_-]+)$/.exec(location.hash)?.[1];
+
+if (token) redirectMode(token);
+else converterMode();
+
+function redirectMode(tok) {
+  let uri;
+  try {
+    uri = decode(tok);
+  } catch (e) {
+    render(`
+      <h1>Can't open this link</h1>
+      <p class="sub">obslink only opens <code>obsidian://</code> links.</p>
+      <p class="err">${escapeHtml(e.message)}</p>`);
+    return;
+  }
+
+  const { vault, note } = describe(uri);
+  render(`
+    <h1>Opening in Obsidian…</h1>
+    <p class="sub">If nothing happens, tap below.</p>
+    <p class="note">${escapeHtml(note ?? uri)}</p>
+    <p class="vault">${vault ? escapeHtml(vault) : ""}</p>
+    <a class="btn" id="go" href="${escapeHtml(uri)}">Open in Obsidian</a>`);
+
+  // replace(), not href: the bounce page should not land in history, so Back
+  // from Obsidian returns to the calendar rather than re-triggering the jump.
+  // Mobile browsers sometimes suppress a gestureless custom-scheme navigation,
+  // which is what the button above is for.
+  location.replace(uri);
+}
+
+function converterMode() {
+  render(`
+    <h1>obslink</h1>
+    <p class="sub">Paste an <code>obsidian://</code> link to get one that works in Google Calendar, Notion, email — anywhere.</p>
+    <div class="row">
+      <label for="in">Obsidian link</label>
+      <textarea id="in" spellcheck="false" placeholder="obsidian://open?vault=…&amp;file=…"></textarea>
+    </div>
+    <div class="row out" id="out">
+      <label for="res" id="outlabel">Shareable link</label>
+      <input id="res" readonly spellcheck="false">
+    </div>
+    <div class="row out" id="copyrow"><button id="copy">Copy</button></div>
+    <div class="row err" id="err"></div>
+    <p class="hint">The note path is stored in the link's <code>#fragment</code>, which browsers never send to a server. This page never learns which note you opened.</p>`);
+
+  const $in = app.querySelector("#in");
+  const $out = app.querySelector("#out");
+  const $copyrow = app.querySelector("#copyrow");
+  const $res = app.querySelector("#res");
+  const $err = app.querySelector("#err");
+  const $label = app.querySelector("#outlabel");
+  const $copy = app.querySelector("#copy");
+
+  const show = (on) => { $out.classList.toggle("show", on); $copyrow.classList.toggle("show", on); };
+
+  $in.addEventListener("input", () => {
+    const text = $in.value.trim();
+    $err.textContent = "";
+    if (!text) { show(false); return; }
+    try {
+      // Direction is auto-detected, so pasting a converted link gets you the
+      // original back — handy for checking what a link in a calendar points at.
+      const outbound = text.toLowerCase().startsWith("obsidian://");
+      $res.value = outbound ? toHttps(text, selfBase || DEFAULT_BASE) : fromHttps(text);
+      $label.textContent = outbound ? "Shareable link" : "Obsidian link";
+      show(true);
+      $copy.textContent = "Copy";
+    } catch (e) {
+      show(false);
+      $err.textContent = e.message;
+    }
+  });
+
+  $copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($res.value);
+    } catch {
+      $res.select();
+      document.execCommand("copy");
+    }
+    $copy.textContent = "Copied";
+    setTimeout(() => { $copy.textContent = "Copy"; }, 1400);
+  });
+
+  $in.focus();
+}
+
+// Used for text and for the button's href. The href value is already proven to
+// start with obsidian://, but it is escaped anyway so a crafted note name
+// cannot break out of the attribute.
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+</script>
+</body>
+</html>

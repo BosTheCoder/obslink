@@ -1,0 +1,58 @@
+{
+  "_comment": "Shared by obslink.js (test/codec.test.js) and obl.py (test_obl.py). The two codecs must agree; these pairs are the contract.",
+  "base": "https://obs.buildwithbos.com",
+  "cases": [
+    {
+      "name": "plain-open",
+      "uri": "obsidian://open?vault=Knowledge%20Bank&file=Hubs%2FMoney",
+      "token": "b2JzaWRpYW46Ly9vcGVuP3ZhdWx0PUtub3dsZWRnZSUyMEJhbmsmZmlsZT1IdWJzJTJGTW9uZXk"
+    },
+    {
+      "name": "nested-path",
+      "uri": "obsidian://open?vault=Knowledge%20Bank&file=Main%2FProjects%2F2026%20Q3%20Review",
+      "token": "b2JzaWRpYW46Ly9vcGVuP3ZhdWx0PUtub3dsZWRnZSUyMEJhbmsmZmlsZT1NYWluJTJGUHJvamVjdHMlMkYyMDI2JTIwUTMlMjBSZXZpZXc"
+    },
+    {
+      "name": "advanced-uri",
+      "uri": "obsidian://advanced-uri?vault=Knowledge%20Bank&filepath=Inbox%2FNote.md&mode=append",
+      "token": "b2JzaWRpYW46Ly9hZHZhbmNlZC11cmk_dmF1bHQ9S25vd2xlZGdlJTIwQmFuayZmaWxlcGF0aD1JbmJveCUyRk5vdGUubWQmbW9kZT1hcHBlbmQ"
+    },
+    {
+      "name": "non-ascii",
+      "uri": "obsidian://open?vault=Knowledge%20Bank&file=Reference%2FCaf%C3%A9%20%F0%9F%93%9A%20Notes",
+      "token": "b2JzaWRpYW46Ly9vcGVuP3ZhdWx0PUtub3dsZWRnZSUyMEJhbmsmZmlsZT1SZWZlcmVuY2UlMkZDYWYlQzMlQTklMjAlRjAlOUYlOTMlOUElMjBOb3Rlcw"
+    },
+    {
+      "name": "unencoded-space",
+      "uri": "obsidian://open?vault=Knowledge Bank&file=Moments when z has moved mad",
+      "token": "b2JzaWRpYW46Ly9vcGVuP3ZhdWx0PUtub3dsZWRnZSBCYW5rJmZpbGU9TW9tZW50cyB3aGVuIHogaGFzIG1vdmVkIG1hZA"
+    },
+    {
+      "name": "search",
+      "uri": "obsidian://search?vault=Knowledge%20Bank&query=tag%3A%23money",
+      "token": "b2JzaWRpYW46Ly9zZWFyY2g_dmF1bHQ9S25vd2xlZGdlJTIwQmFuayZxdWVyeT10YWclM0ElMjNtb25leQ"
+    }
+  ],
+  "rejected": [
+    {
+      "name": "javascript-scheme",
+      "token": "amF2YXNjcmlwdDphbGVydCgxKQ"
+    },
+    {
+      "name": "https-phish",
+      "token": "aHR0cHM6Ly9ldmlsLmV4YW1wbGUvbG9naW4"
+    },
+    {
+      "name": "data-uri",
+      "token": "ZGF0YTp0ZXh0L2h0bWwsPHNjcmlwdD4xPC9zY3JpcHQ-"
+    },
+    {
+      "name": "not-base64",
+      "token": "!!!not-base64!!!"
+    },
+    {
+      "name": "empty",
+      "token": ""
+    }
+  ]
+}
