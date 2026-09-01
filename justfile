@@ -1,0 +1,60 @@
+set shell := ["bash", "-cu"]
+
+# Deploy target, baked at scaffold time. Override for one run: DEMO_TARGET=fly just deploy
+TARGET := env_var_or_default("DEMO_TARGET", "pages")
+
+# Local development — plain static server, no container, no build step
+dev:
+    @echo "Serving . on http://localhost:8000  (Ctrl-C to stop)"
+    python3 -m http.server 8000
+
+# Nothing to build: this stack ships the files as written
+build:
+    @echo "No build step — html ships source as-is. Run 'just deploy'."
+
+# Deploy to the configured target (Fly, or a local Tailscale-exposed container)
+deploy:
+    bash infra/{{TARGET}}/deploy.sh
+
+# Stop the app (Fly: machines -> ~$0; local: container stopped)
+stop:
+    bash infra/{{TARGET}}/stop.sh
+
+# Start the app after a stop
+start:
+    bash infra/{{TARGET}}/start.sh
+
+# Destroy the deployed app (with confirmation)
+destroy:
+    bash infra/{{TARGET}}/destroy.sh
+
+# Tail app logs
+logs:
+    bash infra/{{TARGET}}/logs.sh
+
+# Open a shell in the running app
+ssh:
+    bash infra/{{TARGET}}/ssh.sh
+
+# Show app status and reachable URLs
+status:
+    bash infra/{{TARGET}}/status.sh
+
+# Open the app URL in a browser
+open:
+    bash infra/{{TARGET}}/open.sh
+
+# Set a secret: just secret KEY=VAL
+secret KV:
+    bash infra/{{TARGET}}/secret.sh "{{KV}}"
+
+# Provision a database (stateful stacks only)
+db-create:
+    bash infra/{{TARGET}}/db-create.sh
+
+# Pull latest infra improvements from the demo-tools template. Rewrites only
+# the generated infra scripts, which say so in their own first line; the files
+# this repo owns (Dockerfile, fly.toml, compose.yml, this justfile, README) are
+# left alone.
+sync:
+    uvx --from git+https://github.com/BosTheCoder/demo-tools demo sync

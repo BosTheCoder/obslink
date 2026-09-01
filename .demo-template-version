@@ -1,0 +1,18 @@
+_commit: 33ae84b1fb2a47a31149a896754b9d6438cce696
+_src_path: https://github.com/BosTheCoder/demo-tools
+_subdirectory: src/demo_tools/_data/template
+dockerised: false
+domain_base: demos.buildwithbos.com
+host_port: 8000
+hostnames:
+- obslink.demos.buildwithbos.com
+internal_port: 8000
+name: obslink
+pages_ok: true
+profile: demo
+publish_mode: root
+stack: html
+stateful: false
+tailscale_host: bos-desktop.fish-grouper.ts.net
+tailscale_path: /obslink
+target: pages
